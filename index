@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>FNXM Dashboard Integrale</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg:#0d0f12; --panel:#141820; --accent:#00ffcc; --text:#eaeef2; --muted:#94a3b8; --card:#1b2030;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial}
+    .topbar{display:flex;align-items:center;justify-content:space-between;background:#0f131a;border-bottom:1px solid #1f2533;padding:12px 18px}
+    .topbar h1{margin:0;color:var(--accent);font-size:18px}
+    .topbar nav a{margin-left:10px;color:var(--text);text-decoration:none;border:1px solid #273043;padding:8px 10px;border-radius:8px}
+    .topbar nav a:hover{border-color:var(--accent);color:var(--accent)}
+    main{padding:20px}
+    .panel{background:var(--panel);border:1px solid #1f2533;border-radius:12px;padding:18px;margin:18px}
+    .card{background:var(--card);border:1px solid #273043;border-radius:12px;padding:12px;margin-bottom:12px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+    h2{margin-top:0}
+    pre{white-space:pre-wrap}
+    .footbar{text-align:center;padding:16px;color:var(--muted);border-top:1px solid #1f2533}
+    .button{background:transparent;border:1px solid #273043;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
+    .button:hover{border-color:var(--accent);color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>FNXM</h1>
+    <nav>
+      <a href="#summary">Summary</a>
+      <a href="#missions">Missioni</a>
+      <a href="#leaderboard">Classifica</a>
+      <a href="#wallet">Wallet</a>
+      <a href="#shop">Shop</a>
+      <a href="#events">Eventi</a>
+      <a href="#analytics">Analitiche</a>
+      <a href="#admin">Admin</a>
+      <a href="#downloads">Download</a>
+    </nav>
+  </header>
+
+  <main id="view" class="panel">Caricamento…</main>
+
+  <footer class="footbar">
+    <p>FNXM © 2025 — Nexus Integration</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    async function loadRoute() {
+      const hash = location.hash || "#summary";
+      const view = document.getElementById("view");
+      view.innerHTML = "";
+      if(hash==="#summary") initSummary(view);
+      if(hash==="#missions") initMissions(view);
+      if(hash==="#leaderboard") initLeaderboard(view);
+      if(hash==="#wallet") initWallet(view);
+      if(hash==="#shop") initShop(view);
+      if(hash==="#events") initEvents(view);
+      if(hash==="#analytics") initAnalytics(view);
+      if(hash==="#admin") initAdmin(view);
+      if(hash==="#downloads") initDownloads(view);
+    }
+
+    async function initSummary(view){
+      view.innerHTML = '<h2>Riepilogo Mining</h2><div id="summary-data"></div><canvas id="hashChart" height="120"></canvas>';
+      try {
+        const res = await fetch("http://127.0.0.1:8081/2/summary");
+        const data = await res.json();
+        document.getElementById("summary-data").innerHTML = `
+          <div class="card">
+            <p><strong>Status:</strong> ${data.status}</p>
+            <p><strong>Moduli:</strong> ${data.modules.join(", ")}</p>
+            <p><strong>Uptime:</strong> ${Math.floor(data.uptime)}s</p>
+            <p><strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}</p>
+          </div>`;
+        const ctx = document.getElementById('hashChart').getContext('2d');
+        new Chart(ctx,{
+          type:'line',
+          data:{labels:data.modules,datasets:[{label:'Hashrate simulato',data:[12,9,7,15,18],borderColor:'#00ffcc',backgroundColor:'rgba(0,255,204,0.15)',tension:0.25}]},
+          options:{plugins:{legend:{labels:{color:'#eaeef2'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#273043'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#273043'}}}}
+        });
+      } catch { document.getElementById("summary-data").textContent="Errore summary"; }
+    }
+
+    async function initMissions(view){
+      view.innerHTML='<h2>Missioni</h2><div id="missions-data" class="grid"></div>';
+      const missions=[{id:1,name:"100 click",reward:25},{id:2,name:"5 min watcher",reward:15},{id:3,name:"Scroll 10x",reward:10}];
+      document.getElementById("missions-data").innerHTML=missions.map(m=>`<div class="card"><strong>${m.name}</strong> — ${m.reward} FNXM <button class="button" onclick="alert('Missione ${m.id} completata')">Completa</button></div>`).join('');
+    }
+
+    async function initLeaderboard(view){
+      view.innerHTML='<h2>Classifica</h2><div id="leaderboard-data" class="grid"></div>';
+      const lb=[{user:"alpha",score:12450},{user:"beta",score:11210},{user:"gamma",score:9870}];
+      document.getElementById("leaderboard-data").innerHTML=lb.map((r,i)=>`<div class="card"><strong>#${i+1}</strong> ${r.user} — ${r.score} pts</div>`).join('');
+    }
+
+    async function initWallet(view){
+      view.innerHTML='<h2>Wallet FNXM</h2><div id="wallet-data"></div>';
+      const w={address:"FNXMxyz...",balance:1540,pending:120};
+      document.getElementById("wallet-data").innerHTML=`<div class="card"><p><strong>Indirizzo:</strong> ${w.address}</p><p><strong>Saldo:</strong> ${w.balance} FNXM</p><p><strong>Pending:</strong> ${w.pending} FNXM</p><button class="button" onclick="navigator.clipboard.writeText('${w.address}')">Copia</button></div>`;
+    }
+
+    function initShop(view){
+      view.innerHTML='<h2>Shop FNXM</h2><div id="shop-items" class="grid"></div>';
+      const items=[{name:"Booster x2",price:100},{name:"Auto-clicker",price:250},{name:"Pass Stagionale",price:500},{name:"Bundle Elite",price:1200}];
+      document.getElementById("shop-items").innerHTML=items.map(i=>`<div class="card"><h3>${i.name}</h3><p>${i.price} FNXM</p><button class="button" onclick="alert('Acquistato ${i.name}')">Acquista</button></div>`).join('');
+    }
+
+    function initEvents(view){
+      view.innerHTML='<h2>Eventi</h2><div id="events-list" class="grid"></div>';
+      const events=[{name:"Happy Hour",desc:"x2 clicker"},{name:"Tap Frenzy",desc:"x5 mobile"},{name:"Weekend Boost",desc:"x1.5 watcher"}];
+      document.getElementById("events-list").innerHTML=events.map(e=>`<div class="card"><h3>${e.name}</h3><p>${e.desc}</p><button class="button" onclick="alert('Evento attivato: ${e.name}')">Attiva</button></div>`).join('');
+    }
+
+    function initAnalytics(view){
+      view.innerHTML='<h2>Analitiche</h2><div id="analytics-data"></div>';
+      document.getElementById("analytics-data").innerHTML=`<div class="card"><p>Engagement: 86
